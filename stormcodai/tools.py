@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Any
-
-from .workspace import Workspace
+from typing import Any, Callable
 
 
 @dataclass(frozen=True)
@@ -12,9 +10,9 @@ class Tool:
 
 
 class ToolRegistry:
-    """Explicit allowlist of tools exposed to the agent."""
+    """Explicit allowlist of tools exposed to StormCodAI."""
 
-    def __init__(self, workspace: Workspace):
+    def __init__(self, workspace):
         self.workspace = workspace
         self._tools = {
             "list_files": Tool(
@@ -35,12 +33,13 @@ class ToolRegistry:
     def describe(self) -> list[dict[str, str]]:
         return [
             {"name": tool.name, "description": tool.description}
-            for tool in self._tools.values()
+            for tool in sorted(self._tools.values(), key=lambda item: item.name)
         ]
 
     def call(self, name: str, **arguments: Any) -> Any:
-        try:
-            tool = self._tools[name]
-        except KeyError as exc:
-            raise ValueError(f"Unknown or unavailable tool: {name}") from exc
+        if not isinstance(name, str) or not name:
+            raise ValueError("Tool name must be a non-empty string.")
+        tool = self._tools.get(name)
+        if tool is None:
+            raise ValueError(f"Unknown or unavailable tool: {name}")
         return tool.handler(**arguments)
