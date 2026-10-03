@@ -6,6 +6,7 @@ library to keep the foundation small and auditable.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import mimetypes
 import os
@@ -28,6 +29,26 @@ RATE_LIMIT_WINDOW = 60.0
 RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_MAX_KEYS = 4096
 REQUEST_TIMEOUT = 75.0
+
+
+def validate_bind_host(host: str) -> str:
+    """Allow only loopback binding until authenticated remote access exists."""
+    value = host.strip()
+    if not value:
+        raise ValueError("STORMCODAI_HOST cannot be empty.")
+    if value.lower() == "localhost":
+        return value
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError as exc:
+        raise ValueError(
+            "STORMCODAI_HOST must be localhost or a loopback IP address."
+        ) from exc
+    if not address.is_loopback:
+        raise ValueError(
+            "StormCodAI only binds to loopback addresses until authenticated remote access is implemented."
+        )
+    return value
 
 
 class RateLimiter:
@@ -74,8 +95,8 @@ class Handler(BaseHTTPRequestHandler):
         self.connection.settimeout(REQUEST_TIMEOUT)
 
     def log_message(self, fmt, *args):
-        # Request bodies and credentials are never logged.
-        super().log_message(fmt, *args)
+        # Do not log request targets: URLs may contain sensitive query data.
+        super().log_message("%s", "request received")
 
     def _send_json(self, status: int, payload: dict) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -196,7 +217,7 @@ class Handler(BaseHTTPRequestHandler):
     @staticmethod
     def _safe_static_target(web_root: Path, request_path: str) -> Path | None:
         """Resolve a URL path only after strict traversal validation."""
-        if "\x00" in request_path or "\\" in request_path:
+        if " " in request_path or "\" in request_path:
             return None
 
         relative = request_path.lstrip("/")
@@ -237,7 +258,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    host = os.getenv("STORMCODAI_HOST", "127.0.0.1")
+    host = validate_bind_host(os.getenv("STORMCODAI_HOST", "127.0.0.1"))
     port = int(os.getenv("STORMCODAI_PORT", "8080"))
     workspace = Workspace(os.getenv("STORMCODAI_WORKSPACE", "stormcodai_workspace"))
     server = StormServer((host, port), Handler, workspace)
