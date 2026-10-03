@@ -217,7 +217,7 @@ class Handler(BaseHTTPRequestHandler):
     @staticmethod
     def _safe_static_target(web_root: Path, request_path: str) -> Path | None:
         """Resolve a URL path only after strict traversal validation."""
-        if " " in request_path or "\" in request_path:
+        if "\\x00" in request_path or "\" in request_path:
             return None
 
         relative = request_path.lstrip("/")
