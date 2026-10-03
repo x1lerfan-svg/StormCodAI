@@ -7,9 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: dependency-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   dependency-review:
     runs-on: ubuntu-latest
     steps:
-      - name: Dependency review
+      - name: Dependency Review
         uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
