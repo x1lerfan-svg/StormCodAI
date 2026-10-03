@@ -1,1 +1,2 @@
-fail-on-severity: moderate
+# Dependency Review policy is intentionally kept in workflow inputs.
+# This file is retained as a repository policy marker.\n

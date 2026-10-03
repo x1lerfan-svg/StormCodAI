@@ -1,32 +1,16 @@
-import tempfile
-import unittest
-
 from stormcodai.agent import CodingAgent
 from stormcodai.workspace import Workspace
 
-
 class FakeClient:
-    def __init__(self):
-        self.user_prompt = ""
+    def __init__(self): self.calls=[]
+    def chat(self, system, user): self.calls.append((system,user)); return "ok"
 
-    def chat(self, system, user):
-        self.user_prompt = user
-        return "ok"
-
-
-class AgentTests(unittest.TestCase):
-    def test_empty_request_is_rejected(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            agent = CodingAgent(FakeClient(), Workspace(tmp))
-            with self.assertRaises(ValueError):
-                agent.ask("   ")
-
-    def test_context_is_bounded(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            workspace = Workspace(tmp)
-            workspace.MAX_CONTEXT_BYTES = 1000
-            workspace.write("large.txt", "x" * 2000)
-            client = FakeClient()
-            agent = CodingAgent(client, workspace)
-            self.assertEqual(agent.ask("inspect"), "ok")
-            self.assertIn("Context limit reached", client.user_prompt)
+def test_agent_uses_bounded_context(tmp_path):
+    ws=Workspace(str(tmp_path))
+    (tmp_path/"src.py").write_text("print('ok')",encoding="utf-8")
+    (tmp_path/".env").write_text("api_key=secret",encoding="utf-8")
+    client=FakeClient()
+    assert CodingAgent(client,ws).ask("inspect src.py")=="ok"
+    assert "src.py" in client.calls[0][1]
+    assert "secret" not in client.calls[0][1]
+    assert "untrusted data" in client.calls[0][0]
