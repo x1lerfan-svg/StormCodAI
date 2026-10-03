@@ -84,7 +84,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header("X-Robots-Tag", "noindex, nofollow")
         self.end_headers()
         self.wfile.write(body)
 
@@ -93,6 +97,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_json(self) -> dict:
         raw_length = self.headers.get("Content-Length")
+        if self.headers.get("Transfer-Encoding"):
+            raise ValueError("Transfer-Encoding is not supported.")
         if not raw_length:
             raise ValueError("Content-Length is required.")
         try:
@@ -120,7 +126,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/api/health":
-            self._send_json(HTTPStatus.OK, {"ok": True, "version": "0.1.0"})
+            self._send_json(HTTPStatus.OK, {"ok": True, "version": "0.1.1"})
+            return
+        if path == "/api/status":
+            self._send_json(HTTPStatus.OK, {
+                "ok": True,
+                "version": "0.1.1",
+                "mode": "proposal-only",
+                "capabilities": {
+                    "workspace_read": True,
+                    "workspace_write": False,
+                    "shell_execution": False,
+                    "github_write": False,
+                },
+            })
             return
         if path == "/api/workspace":
             files = self.server.workspace.list_files()
@@ -129,6 +148,7 @@ class Handler(BaseHTTPRequestHandler):
                 "limits": {
                     "max_files": self.server.workspace.MAX_FILES_IN_CONTEXT,
                     "max_read_bytes": self.server.workspace.MAX_READ_BYTES,
+                    "max_write_bytes": self.server.workspace.MAX_WRITE_BYTES,
                     "max_context_bytes": self.server.workspace.MAX_CONTEXT_BYTES,
                 },
             })

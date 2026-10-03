@@ -1,10 +1,13 @@
 from pathlib import Path
+import os
+import tempfile
 
 
 class Workspace:
     """Filesystem boundary for StormCodAI operations."""
 
     MAX_READ_BYTES = 256 * 1024
+    MAX_WRITE_BYTES = 512 * 1024
     MAX_CONTEXT_BYTES = 2 * 1024 * 1024
     MAX_FILES_IN_CONTEXT = 200
 
@@ -49,5 +52,19 @@ class Workspace:
         original = self.root / relative
         if original.is_symlink() or target.is_symlink():
             raise ValueError("Symlink writes are not allowed.")
+        if len(content.encode("utf-8")) > self.MAX_WRITE_BYTES:
+            raise ValueError(f"File is larger than {self.MAX_WRITE_BYTES} bytes.")
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        fd, temp_name = tempfile.mkstemp(prefix=".stormcodai-", dir=target.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_name, target)
+        except Exception:
+            try:
+                os.unlink(temp_name)
+            except FileNotFoundError:
+                pass
+            raise

@@ -25,6 +25,12 @@ class WorkspaceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ws.read(str(Path(tmp) / "x.txt"))
 
+    def test_rejects_oversized_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Workspace(tmp)
+            with self.assertRaises(ValueError):
+                ws.write("large.txt", "x" * (ws.MAX_WRITE_BYTES + 1))
+
     def test_rejects_non_text_content(self):
         with tempfile.TemporaryDirectory() as tmp:
             ws = Workspace(tmp)

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+import ipaddress
 from urllib.parse import urlparse
 
 
@@ -17,8 +18,15 @@ class Config:
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("STORMCODAI_BASE_URL must be an absolute http(s) URL.")
-        if parsed.username or parsed.password or parsed.fragment:
-            raise ValueError("STORMCODAI_BASE_URL must not contain credentials or fragments.")
+        if parsed.username or parsed.password or parsed.fragment or parsed.query:
+            raise ValueError("STORMCODAI_BASE_URL must not contain credentials, query strings, or fragments.")
+        if parsed.scheme == "http":
+            try:
+                is_loopback = ipaddress.ip_address(parsed.hostname).is_loopback
+            except ValueError:
+                is_loopback = parsed.hostname.lower() == "localhost"
+            if not is_loopback:
+                raise ValueError("STORMCODAI_BASE_URL must use HTTPS unless it targets localhost.")
 
         timeout_raw = os.getenv("STORMCODAI_REQUEST_TIMEOUT", "60").strip()
         response_limit_raw = os.getenv("STORMCODAI_MAX_RESPONSE_BYTES", str(4 * 1024 * 1024)).strip()

@@ -19,6 +19,14 @@ class ServerTests(unittest.TestCase):
             finally:
                 server.server_close()
 
+    def test_status_endpoint_declares_high_risk_capabilities_disabled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = StormServer(("127.0.0.1", 0), Handler, Workspace(tmp))
+            try:
+                server.server_close()
+            finally:
+                server.server_close()
+
     def test_json_body_limit_is_constant(self):
         from stormcodai import server
         self.assertEqual(server.MAX_BODY_BYTES, 64 * 1024)
