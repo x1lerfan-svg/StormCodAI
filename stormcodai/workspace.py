@@ -5,6 +5,7 @@ class Workspace:
     """Filesystem boundary for StormCodAI operations."""
 
     MAX_READ_BYTES = 256 * 1024
+    MAX_CONTEXT_BYTES = 2 * 1024 * 1024
     MAX_FILES_IN_CONTEXT = 200
 
     def __init__(self, root: str = "stormcodai_workspace"):
@@ -12,14 +13,14 @@ class Workspace:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _safe(self, relative: str) -> Path:
-        if not relative or Path(relative).is_absolute():
+        if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
             raise ValueError("Workspace paths must be non-empty relative paths.")
         target = (self.root / relative).resolve()
         if target != self.root and self.root not in target.parents:
             raise ValueError("Path escapes the StormCodAI workspace.")
         return target
 
-    def list_files(self):
+    def list_files(self) -> list[str]:
         files = []
         for path in self.root.rglob("*"):
             if len(files) >= self.MAX_FILES_IN_CONTEXT:
@@ -39,6 +40,8 @@ class Workspace:
         return target.read_text(encoding="utf-8")
 
     def write(self, relative: str, content: str) -> None:
+        if not isinstance(content, str):
+            raise TypeError("File content must be text.")
         target = self._safe(relative)
         if target.exists() and target.is_symlink():
             raise ValueError("Symlink writes are not allowed.")
