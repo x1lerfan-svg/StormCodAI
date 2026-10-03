@@ -3,5 +3,11 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 .pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 stormcodai_workspace/
