@@ -25,6 +25,8 @@ class WorkspaceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ws.read(str(Path(tmp) / "x.txt"))
 
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_rejects_non_text_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Workspace(tmp)
+            with self.assertRaises(TypeError):
+                ws.write("bad.txt", b"not text")
