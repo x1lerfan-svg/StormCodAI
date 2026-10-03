@@ -1,1 +1,98 @@
-const p=document.querySelector("#prompt"),c=document.querySelector("#count"),f=document.querySelector("#form"),chat=document.querySelector("#chat");p.addEventListener("input",()=>c.textContent=p.value.length+" / 4000");f.addEventListener("submit",e=>{e.preventDefault();const v=p.value.trim();if(!v)return;const m=document.createElement("div");m.className="msg";const a=document.createElement("b");a.textContent="Y";const b=document.createElement("p");const s=document.createElement("small");s.textContent="You";const t=document.createElement("span");t.textContent=v;b.append(s,t);m.append(a,b);chat.append(m);p.value="";c.textContent="0 / 4000";chat.scrollTop=chat.scrollHeight});document.querySelector("#theme").addEventListener("click",()=>document.documentElement.classList.toggle("light"));document.querySelector("#menu").addEventListener("click",()=>{const s=document.querySelector("#side");s.style.display=s.style.display==="none"?"":"none"});
+const promptInput = document.querySelector("#prompt");
+const count = document.querySelector("#count");
+const form = document.querySelector("#form");
+const chat = document.querySelector("#chat");
+const theme = document.querySelector("#theme");
+const menu = document.querySelector("#menu");
+
+function setBusy(busy) {
+  const button = form.querySelector("button");
+  button.disabled = busy;
+  button.textContent = busy ? "Storm is working…" : "Ask Storm ↵";
+}
+
+function addMessage(author, text, kind = "") {
+  const message = document.createElement("div");
+  message.className = "msg " + kind;
+  const avatar = document.createElement("b");
+  avatar.textContent = author === "You" ? "Y" : "S";
+  const body = document.createElement("p");
+  const label = document.createElement("small");
+  label.textContent = author;
+  const content = document.createElement("span");
+  content.textContent = text;
+  body.append(label, content);
+  message.append(avatar, body);
+  chat.append(message);
+  chat.scrollTop = chat.scrollHeight;
+  return message;
+}
+
+async function askStorm(prompt) {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: JSON.stringify({prompt})
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Server returned an invalid response.");
+  }
+  if (!response.ok) {
+    throw new Error(data.error || "Request failed.");
+  }
+  return data.answer;
+}
+
+async function loadWorkspace() {
+  try {
+    const response = await fetch("/api/workspace", {headers: {"Accept": "application/json"}});
+    if (!response.ok) return;
+    const data = await response.json();
+    const metric = document.querySelector(".metric");
+    if (metric && Array.isArray(data.files)) {
+      metric.querySelector("b").textContent = String(data.files.length);
+    }
+  } catch {
+    // The dashboard remains usable if workspace discovery is temporarily unavailable.
+  }
+}
+
+promptInput.addEventListener("input", () => {
+  count.textContent = promptInput.value.length + " / 4000";
+});
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const value = promptInput.value.trim();
+  if (!value || form.querySelector("button").disabled) return;
+
+  addMessage("You", value);
+  promptInput.value = "";
+  count.textContent = "0 / 4000";
+  setBusy(true);
+
+  const pending = addMessage("StormCodAI", "Analyzing the workspace…");
+  try {
+    const answer = await askStorm(value);
+    pending.querySelector("span").textContent = answer;
+  } catch (error) {
+    pending.querySelector("span").textContent = error instanceof Error ? error.message : "Request failed.";
+    pending.classList.add("error");
+  } finally {
+    setBusy(false);
+  }
+});
+
+theme.addEventListener("click", () => {
+  document.documentElement.classList.toggle("light");
+});
+
+menu.addEventListener("click", () => {
+  const side = document.querySelector("#side");
+  side.style.display = side.style.display === "none" ? "" : "none";
+});
+
+loadWorkspace();

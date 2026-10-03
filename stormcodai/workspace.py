@@ -21,17 +21,20 @@ class Workspace:
         return target
 
     def list_files(self) -> list[str]:
-        files = []
+        files: list[str] = []
         for path in self.root.rglob("*"):
             if len(files) >= self.MAX_FILES_IN_CONTEXT:
                 break
+            # Do not expose symlinked files at all. This also avoids leaking
+            # a secret accidentally linked into the workspace.
             if path.is_file() and not path.is_symlink():
                 files.append(str(path.relative_to(self.root)))
         return sorted(files)
 
     def read(self, relative: str) -> str:
         target = self._safe(relative)
-        if target.is_symlink():
+        original = self.root / relative
+        if original.is_symlink() or target.is_symlink():
             raise ValueError("Symlink access is not allowed.")
         if not target.is_file():
             raise FileNotFoundError(relative)
@@ -43,7 +46,8 @@ class Workspace:
         if not isinstance(content, str):
             raise TypeError("File content must be text.")
         target = self._safe(relative)
-        if target.exists() and target.is_symlink():
+        original = self.root / relative
+        if original.is_symlink() or target.is_symlink():
             raise ValueError("Symlink writes are not allowed.")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
