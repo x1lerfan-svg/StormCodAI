@@ -14,7 +14,7 @@ import time
 import uuid
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 from .agent import CodingAgent
@@ -173,17 +173,30 @@ class Handler(BaseHTTPRequestHandler):
                 "error": "Internal server error.",
             })
 
+    @staticmethod
+    def _safe_static_target(web_root: Path, request_path: str) -> Path | None:
+        """Resolve a URL path only after strict traversal validation."""
+        if "\x00" in request_path or "\\" in request_path:
+            return None
+
+        relative = request_path.lstrip("/")
+        candidate = PurePosixPath(relative)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            return None
+
+        target = (web_root / candidate).resolve()
+        try:
+            target.relative_to(web_root)
+        except ValueError:
+            return None
+        return target
+
     def _serve_static(self, path: str) -> None:
         if path == "/":
             path = "/index.html"
-        web_root = Path(__file__).resolve().parent.parent / "web"
-        relative = path.lstrip("/")
-        target = (web_root / relative).resolve()
-        if target != web_root and web_root not in target.parents:
-            self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
-            return
-        original = web_root / relative
-        if original.is_symlink() or not target.is_file():
+        web_root = (Path(__file__).resolve().parent.parent / "web").resolve()
+        target = self._safe_static_target(web_root, path)
+        if target is None or not target.is_file():
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
             return
         try:
