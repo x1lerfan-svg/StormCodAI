@@ -22,3 +22,27 @@ class ConfigTests(unittest.TestCase):
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
+
+    def test_rejects_invalid_base_url(self):
+        old = os.environ.get("STORMCODAI_BASE_URL")
+        try:
+            os.environ["STORMCODAI_BASE_URL"] = "not-a-url"
+            with self.assertRaises(ValueError):
+                Config.from_env()
+        finally:
+            if old is None:
+                os.environ.pop("STORMCODAI_BASE_URL", None)
+            else:
+                os.environ["STORMCODAI_BASE_URL"] = old
+
+    def test_rejects_credentials_in_base_url(self):
+        old = os.environ.get("STORMCODAI_BASE_URL")
+        try:
+            os.environ["STORMCODAI_BASE_URL"] = "https://user:pass@example.com/v1"
+            with self.assertRaises(ValueError):
+                Config.from_env()
+        finally:
+            if old is None:
+                os.environ.pop("STORMCODAI_BASE_URL", None)
+            else:
+                os.environ["STORMCODAI_BASE_URL"] = old
