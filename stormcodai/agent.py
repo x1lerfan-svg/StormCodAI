@@ -18,22 +18,33 @@ class CodingAgent:
     def __init__(self, client: ModelClient, workspace: Workspace):
         self.client = client
         self.tools = ToolRegistry(workspace)
+        self.workspace = workspace
 
-    def ask(self, request: str) -> str:
-        request = request.strip()
-        if not request:
-            raise ValueError("Request cannot be empty.")
-
+    def _build_context(self) -> str:
         files = self.tools.call("list_files")
-        file_context = []
+        context = ["Workspace files:", "\n".join(files) if files else "(empty)",
+                   "", "Readable file contents:"]
+        total_bytes = sum(len(part.encode("utf-8")) for part in context)
+
         for path in files:
             try:
                 content = self.tools.call("read_file", relative=path)
             except (OSError, UnicodeDecodeError, ValueError):
                 continue
-            file_context.append(f"\n--- {path} ---\n{content}")
+            block = f"\n--- {path} ---\n{content}"
+            block_bytes = len(block.encode("utf-8"))
+            if total_bytes + block_bytes > self.workspace.MAX_CONTEXT_BYTES:
+                context.append("\n[Context limit reached; remaining files omitted.]")
+                break
+            context.append(block)
+            total_bytes += block_bytes
+        return "\n".join(context)
 
-        context = "Workspace files:\n" + ("\n".join(files) if files else "(empty)")
-        if file_context:
-            context += "\n\nReadable file contents:\n" + "".join(file_context)
-        return self.client.chat(SYSTEM_PROMPT, context + "\n\nUser request:\n" + request)
+    def ask(self, request: str) -> str:
+        request = request.strip()
+        if not request:
+            raise ValueError("Request cannot be empty.")
+        return self.client.chat(
+            SYSTEM_PROMPT,
+            self._build_context() + "\n\nUser request:\n" + request,
+        )
