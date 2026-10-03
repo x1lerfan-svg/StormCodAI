@@ -1,35 +1,47 @@
 # StormCodAI
 
-StormCodAI is a lightweight, security-conscious AI coding agent.
+StormCodAI is a security-conscious AI coding workspace and coding-agent foundation.
 
 ## Current status
 
-Version 0.1.0 is the foundation release. The agent can inspect a bounded local workspace and ask a configurable OpenAI-compatible model for coding guidance. It is proposal-only: it does not yet apply model-generated edits or execute arbitrary commands.
+**v0.1.0 — Foundation + professional app shell**
 
-## Design goals
+The Python core inspects a bounded local workspace and asks an OpenAI-compatible model for coding guidance. It is proposal-only: no model-generated file edits or arbitrary command execution.
 
-- Small, auditable core
-- Safe workspace boundary
-- Configurable model-provider abstraction
-- Tests and CI before autonomous write/execute capabilities
-- Explicit approval gates for destructive operations
+A dependency-free web app shell is available in `web/`. It is a presentation layer; secrets and privileged operations remain server-side.
 
-## Run
+## Web app
 
-    python -m stormcodai
+Run locally with Python:
 
-Configure the model through environment variables:
+```bash
+python -m http.server 8080 --directory web
+```
 
-    STORMCODAI_API_KEY=your-key
-    STORMCODAI_BASE_URL=https://api.openai.com/v1
-    STORMCODAI_MODEL=your-model
+Open `http://127.0.0.1:8080`.
 
-Do not commit API keys, tokens, passwords, or .env files. GitHub provides secret scanning and push protection for preventing accidental credential exposure.
+The UI is not directly connected to the model yet. The next milestone is a server-side API with validated, streamed agent events.
+
+## Python agent
+
+```bash
+python -m stormcodai
+```
+
+Environment:
+
+```text
+STORMCODAI_API_KEY=
+STORMCODAI_BASE_URL=https://api.openai.com/v1
+STORMCODAI_MODEL=
+```
+
+Never commit API keys, tokens, passwords or `.env` files.
 
 ## Development
 
-Run the test suite with:
+```bash
+python -m unittest discover -s tests -v
+```
 
-    python -m unittest discover -s tests -v
-
-GitHub Actions will run tests on pushes and pull requests. Workflows belong in .github/workflows.
+See [docs/APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md) for the security boundaries and roadmap.
