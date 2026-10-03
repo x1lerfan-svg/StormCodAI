@@ -4,7 +4,7 @@ StormCodAI is a security-conscious AI coding workspace and coding-agent foundati
 
 ## Current status
 
-**v0.1.0 — Secure app foundation**
+**v0.1.1 — Secure app foundation**
 
 StormCodAI now has a professional web shell and a local server/API boundary. The browser never receives the model provider key. The current agent remains proposal-only: it can inspect the bounded workspace and return guidance, but it cannot execute arbitrary shell commands or automatically apply model-generated edits.
 
@@ -37,6 +37,7 @@ STORMCODAI_WORKSPACE=stormcodai_workspace
 ## API
 
 - `GET /api/health` — health check
+- `GET /api/status` — runtime mode and capability boundary
 - `GET /api/workspace` — bounded workspace inventory and limits
 - `GET /api/tools` — explicitly available tools
 - `POST /api/chat` — validated coding request
