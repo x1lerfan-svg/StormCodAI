@@ -3,9 +3,11 @@ from .config import Config
 from .model_client import ModelClient
 from .workspace import Workspace
 
+
 def main():
     agent = CodingAgent(ModelClient(Config.from_env()), Workspace())
-    print("StormCodAI 0.1.0 — AI coding agent")
+    print("StormCodAI 0.1.0 - AI coding agent")
+    print("Proposal-only mode: no files are changed by the agent yet.")
     print("Type 'exit' to quit.\n")
     while True:
         try:
