@@ -4,39 +4,50 @@ StormCodAI is a security-conscious AI coding workspace and coding-agent foundati
 
 ## Current status
 
-**v0.1.0 — Foundation + professional app shell**
+**v0.1.0 — Secure app foundation**
 
-The Python core inspects a bounded local workspace and asks an OpenAI-compatible model for coding guidance. It is proposal-only: no model-generated file edits or arbitrary command execution.
+StormCodAI now has a professional web shell and a local server/API boundary. The browser never receives the model provider key. The current agent remains proposal-only: it can inspect the bounded workspace and return guidance, but it cannot execute arbitrary shell commands or automatically apply model-generated edits.
 
-A dependency-free web app shell is available in `web/`. It is a presentation layer; secrets and privileged operations remain server-side.
+## Run the app
 
-## Web app
-
-Run locally with Python:
+Configure the model:
 
 ```bash
-python -m http.server 8080 --directory web
+export STORMCODAI_API_KEY="your-key"
+export STORMCODAI_BASE_URL="https://api.openai.com/v1"
+export STORMCODAI_MODEL="your-model"
+```
+
+Start the application:
+
+```bash
+python -m stormcodai serve
 ```
 
 Open `http://127.0.0.1:8080`.
 
-The UI is not directly connected to the model yet. The next milestone is a server-side API with validated, streamed agent events.
+Optional environment variables:
 
-## Python agent
+```text
+STORMCODAI_HOST=127.0.0.1
+STORMCODAI_PORT=8080
+STORMCODAI_WORKSPACE=stormcodai_workspace
+```
+
+## API
+
+- `GET /api/health` — health check
+- `GET /api/workspace` — bounded workspace inventory and limits
+- `GET /api/tools` — explicitly available tools
+- `POST /api/chat` — validated coding request
+
+The API enforces a 64 KiB JSON body limit, 4,000-character prompt limit, basic per-client rate limiting, generic provider errors, and safe static-file path handling.
+
+## Python CLI
 
 ```bash
 python -m stormcodai
 ```
-
-Environment:
-
-```text
-STORMCODAI_API_KEY=
-STORMCODAI_BASE_URL=https://api.openai.com/v1
-STORMCODAI_MODEL=
-```
-
-Never commit API keys, tokens, passwords or `.env` files.
 
 ## Development
 
@@ -44,4 +55,18 @@ Never commit API keys, tokens, passwords or `.env` files.
 python -m unittest discover -s tests -v
 ```
 
-See [docs/APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md) for the security boundaries and roadmap.
+## Security
+
+See [docs/APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md).
+
+Never commit API keys, tokens, passwords, private keys or `.env` files. For GitHub integration, the planned production design uses a GitHub App with minimum repository permissions and short-lived installation tokens.
+
+## Roadmap
+
+1. Secure app/API foundation — current.
+2. Streaming agent events.
+3. Patch/diff engine with approval and atomic apply.
+4. Isolated test/command sandbox.
+5. GitHub App integration.
+6. Authentication, projects and audit logs.
+7. Production deployment and observability.
