@@ -1,0 +1,4 @@
+# Dependency review policy for pull requests.
+# Keep this policy conservative; tighten license rules only after the project's
+# dependency/licensing requirements are defined.
+fail-on-severity: moderate
