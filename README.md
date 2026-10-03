@@ -1,26 +1,35 @@
 # StormCodAI
 
-StormCodAI is a lightweight AI coding agent.
+StormCodAI is a lightweight, security-conscious AI coding agent.
 
-## MVP
-- Chat with an AI coding model
-- Read project files
-- Propose file changes
-- Apply safe file changes inside a workspace
-- Keep model access configurable through an OpenAI-compatible HTTP API
+## Current status
+
+Version 0.1.0 is the foundation release. The agent can inspect a bounded local workspace and ask a configurable OpenAI-compatible model for coding guidance. It is proposal-only: it does not yet apply model-generated edits or execute arbitrary commands.
+
+## Design goals
+
+- Small, auditable core
+- Safe workspace boundary
+- Configurable model-provider abstraction
+- Tests and CI before autonomous write/execute capabilities
+- Explicit approval gates for destructive operations
 
 ## Run
 
-```bash
-python -m stormcodai
-```
+    python -m stormcodai
 
-Set these environment variables:
+Configure the model through environment variables:
 
-```text
-STORMCODAI_API_KEY=your-key
-STORMCODAI_BASE_URL=https://api.openai.com/v1
-STORMCODAI_MODEL=your-model
-```
+    STORMCODAI_API_KEY=your-key
+    STORMCODAI_BASE_URL=https://api.openai.com/v1
+    STORMCODAI_MODEL=your-model
 
-The first version intentionally uses Python's standard library for the model client.
+Do not commit API keys, tokens, passwords, or .env files. GitHub provides secret scanning and push protection for preventing accidental credential exposure.
+
+## Development
+
+Run the test suite with:
+
+    python -m unittest discover -s tests -v
+
+GitHub Actions will run tests on pushes and pull requests. Workflows belong in .github/workflows.
